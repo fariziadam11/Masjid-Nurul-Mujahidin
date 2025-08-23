@@ -8,7 +8,6 @@ import ChangePassword from './ChangePassword';
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('leadership');
   const [leaders, setLeaders] = useState<Leadership[]>([]);
-  const [prayers, setPrayers] = useState<PrayerSchedule[]>([]);
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,15 +118,13 @@ const AdminDashboard: React.FC = () => {
 
   const fetchAllData = async () => {
     try {
-      const [leadersData, prayersData, recordsData, announcementsData] = await Promise.all([
+      const [leadersData, recordsData, announcementsData] = await Promise.all([
         supabase.from('leadership').select('*').order('created_at', { ascending: true }),
-        supabase.from('prayer_schedule').select('*').order('prayer_name', { ascending: true }),
         supabase.from('financial_records').select('*').order('date', { ascending: false }),
         supabase.from('announcements').select('*').order('date', { ascending: false })
       ]);
 
       setLeaders(leadersData.data || []);
-      setPrayers(prayersData.data || []);
       setRecords(recordsData.data || []);
       setAnnouncements(announcementsData.data || []);
     } catch (error) {
@@ -252,37 +249,7 @@ const AdminDashboard: React.FC = () => {
             </>
           );
 
-        case 'prayers':
-          return (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Prayer Name</label>
-                <select
-                  value={formData.prayer_name || ''}
-                  onChange={(e) => setFormData({ ...formData, prayer_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                >
-                  <option value="">Select Prayer</option>
-                  <option value="Subuh">Subuh</option>
-                  <option value="Dzuhur">Dzuhur</option>
-                  <option value="Ashar">Ashar</option>
-                  <option value="Maghrib">Maghrib</option>
-                  <option value="Isya">Isya</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                <input
-                  type="time"
-                  value={formData.time || ''}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
-              </div>
-            </>
-          );
+
 
         case 'financial':
           return (
@@ -476,17 +443,7 @@ const AdminDashboard: React.FC = () => {
               <Users className="h-5 w-5 inline mr-2" />
               {currentContent.leadership}
             </button>
-            <button
-              onClick={() => setActiveTab('prayers')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'prayers'
-                  ? 'border-emerald-500 text-emerald-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Clock className="h-5 w-5 inline mr-2" />
-              {currentContent.prayerSchedule}
-            </button>
+
             <button
               onClick={() => setActiveTab('financial')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -577,67 +534,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Prayer Schedule Tab */}
-        {activeTab === 'prayers' && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{currentContent.prayerSchedule}</h2>
-              <button
-                onClick={() => openForm('prayers', 'create')}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>{currentContent.addNew}</span>
-              </button>
-            </div>
-            
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Prayer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {prayers.map((prayer) => (
-                    <tr key={prayer.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {prayer.prayer_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {prayer.time}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => openForm('prayers', 'edit', prayer)}
-                            className="text-emerald-600 hover:text-emerald-900"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete('prayer_schedule', prayer.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+
 
         {/* Financial Records Tab */}
         {activeTab === 'financial' && (

@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Sun, Sunrise, Sunset, Moon } from 'lucide-react';
-import { LanguageContext } from './Navigation';
+import { Clock, Sun, Sunrise, Sunset, Moon, MapPin, ChevronDown, Search, X } from 'lucide-react';
 
 interface PrayerTime {
   id: string;
   prayer_name: string;
   time: string;
   date: string;
+}
+
+interface City {
+  name: string;
+  nameEn: string;
+  latitude: number;
+  longitude: number;
 }
 
 interface AladhanResponse {
@@ -34,11 +40,14 @@ const PrayerSchedule: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('');
-  const { language } = React.useContext(LanguageContext);
+  const [selectedCity, setSelectedCity] = useState<string>('jakarta');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [language, setLanguage] = useState<'id' | 'en'>('id');
 
   useEffect(() => {
     fetchPrayerSchedule();
-  }, []);
+  }, [selectedCity]);
 
   const content = {
     id: {
@@ -54,7 +63,9 @@ const PrayerSchedule: React.FC = () => {
       note2: 'Khutbah Jumat dimulai pukul 12:00, diikuti sholat Jumat',
       note3: 'Masjid dibuka 30 menit sebelum waktu sholat',
       note4: 'Jadwal khusus Ramadhan akan diumumkan selama bulan suci',
-      note5: 'Jadwal sholat menggunakan koordinat Jakarta (dapat diubah sesuai lokasi)',
+      note5: 'Jadwal sholat menggunakan koordinat kota yang dipilih',
+      selectLocation: 'Pilih Lokasi',
+      searchLocation: 'Cari lokasi...',
       errorTitle: 'Error Loading Prayer Times',
       tryAgain: 'Coba Lagi'
     },
@@ -71,13 +82,45 @@ const PrayerSchedule: React.FC = () => {
       note2: 'Friday sermon starts at 12:00, followed by Friday prayer',
       note3: 'Mosque opens 30 minutes before prayer time',
       note4: 'Special Ramadan schedule will be announced during the holy month',
-      note5: 'Prayer schedule uses Jakarta coordinates (can be changed according to location)',
+      note5: 'Prayer schedule uses coordinates of selected city',
+      selectLocation: 'Select Location',
+      searchLocation: 'Search location...',
       errorTitle: 'Error Loading Prayer Times',
       tryAgain: 'Try Again'
     }
   };
 
   const currentContent = content[language];
+
+  // List of cities in Indonesia with their coordinates
+  const cities: City[] = [
+    { name: 'Jakarta Pusat', nameEn: 'Central Jakarta', latitude: -6.1754, longitude: 106.8272 },
+    { name: 'Jakarta Utara', nameEn: 'North Jakarta', latitude: -6.1384, longitude: 106.8661 },
+    { name: 'Jakarta Barat', nameEn: 'West Jakarta', latitude: -6.1697, longitude: 106.7893 },
+    { name: 'Jakarta Selatan', nameEn: 'South Jakarta', latitude: -6.2297, longitude: 106.7997 },
+    { name: 'Jakarta Timur', nameEn: 'East Jakarta', latitude: -6.2088, longitude: 106.8456 },
+    { name: 'Bandung', nameEn: 'Bandung', latitude: -6.9175, longitude: 107.6191 },
+    { name: 'Surabaya', nameEn: 'Surabaya', latitude: -7.2575, longitude: 112.7521 },
+    { name: 'Medan', nameEn: 'Medan', latitude: 3.5952, longitude: 98.6722 },
+    { name: 'Semarang', nameEn: 'Semarang', latitude: -6.9932, longitude: 110.4203 },
+    { name: 'Palembang', nameEn: 'Palembang', latitude: -2.9761, longitude: 104.7754 },
+    { name: 'Makassar', nameEn: 'Makassar', latitude: -5.1477, longitude: 119.4327 },
+    { name: 'Tangerang', nameEn: 'Tangerang', latitude: -6.2024, longitude: 106.6527 },
+    { name: 'Depok', nameEn: 'Depok', latitude: -6.4025, longitude: 106.7942 },
+    { name: 'Bekasi', nameEn: 'Bekasi', latitude: -6.2349, longitude: 106.9896 },
+    { name: 'Bogor', nameEn: 'Bogor', latitude: -6.5971, longitude: 106.8060 },
+    { name: 'Yogyakarta', nameEn: 'Yogyakarta', latitude: -7.7971, longitude: 110.3708 },
+    { name: 'Malang', nameEn: 'Malang', latitude: -7.9839, longitude: 112.6214 },
+    { name: 'Denpasar', nameEn: 'Denpasar', latitude: -8.6500, longitude: 115.2167 },
+    { name: 'Padang', nameEn: 'Padang', latitude: -0.9444, longitude: 100.4172 },
+    { name: 'Manado', nameEn: 'Manado', latitude: 1.4748, longitude: 124.8421 }
+  ];
+
+  const filteredCities = cities.filter(city => 
+    (language === 'id' ? city.name : city.nameEn)
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
 
   const fetchPrayerSchedule = async () => {
     try {
@@ -89,9 +132,13 @@ const PrayerSchedule: React.FC = () => {
       const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
       setCurrentDate(dateStr);
       
-      // Jakarta coordinates (you can change this to any city in Indonesia)
-      const latitude = -6.2088;
-      const longitude = 106.8456;
+      // Get selected city coordinates
+      const selectedCityData = cities.find(city => 
+        city.name.toLowerCase().replace(/\s+/g, '') === selectedCity ||
+        city.nameEn.toLowerCase().replace(/\s+/g, '') === selectedCity
+      ) || cities[0]; // Default to first city if not found
+      
+      const { latitude, longitude } = selectedCityData;
       
       const response = await fetch(
         `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${latitude}&longitude=${longitude}&method=8`
@@ -154,6 +201,19 @@ const PrayerSchedule: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCitySelect = (cityKey: string) => {
+    setSelectedCity(cityKey);
+    setIsDropdownOpen(false);
+    setSearchTerm('');
+  };
+
+  const getSelectedCityName = () => {
+    const city = cities.find(city => 
+      city.name.toLowerCase().replace(/\s+/g, '') === selectedCity
+    );
+    return city ? (language === 'id' ? city.name : city.nameEn) : 'Jakarta Pusat';
   };
 
   const getPrayerIcon = (prayerName: string) => {
@@ -245,6 +305,102 @@ const PrayerSchedule: React.FC = () => {
           <p className="text-lg text-gray-600">
             {currentContent.subtitle}
           </p>
+          
+          {/* Enhanced Location Selector */}
+          <div className="mt-8 mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              {currentContent.selectLocation}
+            </label>
+            <div className="relative max-w-md mx-auto">
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-left shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="h-5 w-5 text-emerald-600" />
+                    <span className="text-gray-900 font-medium">{getSelectedCityName()}</span>
+                  </div>
+                  <ChevronDown 
+                    className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${
+                      isDropdownOpen ? 'rotate-180' : ''
+                    }`} 
+                  />
+                </div>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  {/* Search Input */}
+                  <div className="p-3 border-b border-gray-100">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder={currentContent.searchLocation}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-8 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                        autoFocus
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <X className="h-3 w-3 text-gray-400" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cities List */}
+                  <div className="max-h-64 overflow-y-auto">
+                    {filteredCities.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        No cities found
+                      </div>
+                    ) : (
+                      filteredCities.map((city) => {
+                        const cityKey = city.name.toLowerCase().replace(/\s+/g, '');
+                        const isSelected = selectedCity === cityKey;
+                        
+                        return (
+                          <button
+                            key={city.name}
+                            onClick={() => handleCitySelect(cityKey)}
+                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center justify-between group ${
+                              isSelected ? 'bg-emerald-50 text-emerald-700' : 'text-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <MapPin className={`h-4 w-4 ${isSelected ? 'text-emerald-600' : 'text-gray-400'}`} />
+                              <span className="font-medium">
+                                {language === 'id' ? city.name : city.nameEn}
+                              </span>
+                            </div>
+                            {isSelected && (
+                              <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Overlay to close dropdown */}
+              {isDropdownOpen && (
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setIsDropdownOpen(false)}
+                />
+              )}
+            </div>
+          </div>
+          
           <div className="mt-4 text-sm text-gray-500">
             {currentContent.currentTime}: {getCurrentTime()}
           </div>
