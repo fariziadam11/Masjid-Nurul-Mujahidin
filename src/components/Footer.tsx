@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
       address: 'Jalan Budi Mulya, RT 15/RW 10, Pademangan, RT.15/RW.10, Pademangan Bar., Kec. Pademangan, Jkt Utara, Daerah Khusus Ibukota Jakarta 14420',
       phone: '+62-812-8681-1742',
       email: 'masmujahidin@gmail.com',
-      copyright: '© 2024 Masjid Al-Hidayah. Semua hak dilindungi.'
+      copyright: '© 2024 Masjid Nurul Mujahidin. Semua hak dilindungi.'
     },
     en: {
       mosqueName: 'Nurul Mujahidin Mosque',
@@ -24,7 +24,7 @@ const Footer: React.FC = () => {
       address: 'Jalan Budi Mulya, RT 15/RW 10, Pademangan, RT.15/RW.10, Pademangan Bar., Kec. Pademangan, Jkt Utara, Daerah Khusus Ibukota Jakarta 14420',
       phone: '+62-812-8681-1742',
       email: 'masmujahidin@gmail.com',
-      copyright: '© 2024 Al-Hidayah Mosque. All rights reserved.'
+      copyright: '© 2024 Nurul Mujahidin Mosque. All rights reserved.'
     }
   };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, Clock, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Settings } from 'lucide-react';
+import { Users, Clock, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Settings, Menu } from 'lucide-react';
 import { supabase, Leadership, PrayerSchedule, FinancialRecord, Announcement, User } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
 import ChangePassword from './ChangePassword';
@@ -12,6 +12,7 @@ const AdminDashboard: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { language } = React.useContext(LanguageContext);
 
@@ -342,8 +343,8 @@ const AdminDashboard: React.FC = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">
               {editingItem.action === 'create' ? 'Add New' : 'Edit'} {editingItem.type}
@@ -359,7 +360,7 @@ const AdminDashboard: React.FC = () => {
           <form onSubmit={handleFormSubmit} className="space-y-4">
             {getFormFields()}
             
-            <div className="flex space-x-3 pt-4">
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
               <button
                 type="submit"
                 className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center justify-center space-x-2"
@@ -402,26 +403,26 @@ const AdminDashboard: React.FC = () => {
       <div className="bg-emerald-900 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link to="/" className="text-xl font-bold">Al-Hidayah Mosque</Link>
-              <span className="text-gray-300">|</span>
-              <span className="text-lg font-semibold">{currentContent.title}</span>
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link to="/" className="text-lg sm:text-xl font-bold truncate">Masjid Nurul Mujahidin</Link>
+              <span className="hidden sm:inline text-gray-300">|</span>
+              <span className="hidden sm:inline text-lg font-semibold">{currentContent.title}</span>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <button
                 onClick={() => setShowChangePassword(true)}
-                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+                className="flex items-center space-x-1 sm:space-x-2 text-gray-300 hover:text-white transition-colors"
               >
-                <Settings className="h-5 w-5" />
-                <span>{currentContent.changePassword}</span>
+                <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">{currentContent.changePassword}</span>
               </button>
               <button
                 onClick={handleSignOut}
-                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+                className="flex items-center space-x-1 sm:space-x-2 text-gray-300 hover:text-white transition-colors"
               >
-                <LogOut className="h-5 w-5" />
-                <span>{currentContent.signOut}</span>
+                <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">{currentContent.signOut}</span>
               </button>
             </div>
           </div>
@@ -431,62 +432,66 @@ const AdminDashboard: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
+          <nav className="flex flex-wrap space-x-2 sm:space-x-8">
             <button
               onClick={() => setActiveTab('leadership')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'leadership'
                   ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <Users className="h-5 w-5 inline mr-2" />
-              {currentContent.leadership}
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">{currentContent.leadership}</span>
+              <span className="sm:hidden">Leadership</span>
             </button>
 
             <button
               onClick={() => setActiveTab('financial')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'financial'
                   ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <DollarSign className="h-5 w-5 inline mr-2" />
-              {currentContent.financialRecords}
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">{currentContent.financialRecords}</span>
+              <span className="sm:hidden">Financial</span>
             </button>
             <button
               onClick={() => setActiveTab('announcements')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'announcements'
                   ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <Megaphone className="h-5 w-5 inline mr-2" />
-              {currentContent.announcements}
+              <Megaphone className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">{currentContent.announcements}</span>
+              <span className="sm:hidden">News</span>
             </button>
           </nav>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Leadership Tab */}
         {activeTab === 'leadership' && (
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{currentContent.leadership}</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{currentContent.leadership}</h2>
               <button
                 onClick={() => openForm('leadership', 'create')}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center"
               >
                 <Plus className="h-4 w-4" />
                 <span>{currentContent.addNew}</span>
               </button>
             </div>
             
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+            {/* Desktop Table */}
+            <div className="hidden sm:block bg-white shadow-lg rounded-lg overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -531,6 +536,34 @@ const AdminDashboard: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Cards */}
+            <div className="sm:hidden space-y-4">
+              {leaders.map((leader) => (
+                <div key={leader.id} className="bg-white shadow-lg rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{leader.name}</h3>
+                      <p className="text-sm text-gray-500">{leader.role}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => openForm('leadership', 'edit', leader)}
+                        className="text-emerald-600 hover:text-emerald-900 p-1"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete('leadership', leader.id)}
+                        className="text-red-600 hover:text-red-900 p-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -539,18 +572,19 @@ const AdminDashboard: React.FC = () => {
         {/* Financial Records Tab */}
         {activeTab === 'financial' && (
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{currentContent.financialRecords}</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{currentContent.financialRecords}</h2>
               <button
                 onClick={() => openForm('financial', 'create')}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center"
               >
                 <Plus className="h-4 w-4" />
                 <span>{currentContent.addNew}</span>
               </button>
             </div>
             
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+            {/* Desktop Table */}
+            <div className="hidden sm:block bg-white shadow-lg rounded-lg overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -613,24 +647,67 @@ const AdminDashboard: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Cards */}
+            <div className="sm:hidden space-y-4">
+              {records.map((record) => (
+                <div key={record.id} className="bg-white shadow-lg rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-500">
+                          {new Date(record.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
+                        </span>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            record.type === 'income'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {record.type}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{record.description}</h3>
+                      <p className="text-lg font-bold text-gray-900">{formatCurrency(Number(record.amount))}</p>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => openForm('financial', 'edit', record)}
+                        className="text-emerald-600 hover:text-emerald-900 p-1"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete('financial_records', record.id)}
+                        className="text-red-600 hover:text-red-900 p-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Announcements Tab */}
         {activeTab === 'announcements' && (
           <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{currentContent.announcements}</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{currentContent.announcements}</h2>
               <button
                 onClick={() => openForm('announcements', 'create')}
-                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center"
               >
                 <Plus className="h-4 w-4" />
                 <span>{currentContent.addNew}</span>
               </button>
             </div>
             
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+            {/* Desktop Table */}
+            <div className="hidden sm:block bg-white shadow-lg rounded-lg overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -680,6 +757,39 @@ const AdminDashboard: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="sm:hidden space-y-4">
+              {announcements.map((announcement) => (
+                <div key={announcement.id} className="bg-white shadow-lg rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-500">
+                          {new Date(announcement.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{announcement.title}</h3>
+                      <p className="text-sm text-gray-700 line-clamp-3">{announcement.content}</p>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => openForm('announcements', 'edit', announcement)}
+                        className="text-emerald-600 hover:text-emerald-900 p-1"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete('announcements', announcement.id)}
+                        className="text-red-600 hover:text-red-900 p-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
