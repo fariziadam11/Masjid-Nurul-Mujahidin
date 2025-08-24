@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Fuel as Mosque, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
 
@@ -19,7 +19,6 @@ const Login: React.FC = () => {
       subtitle: 'Masuk untuk mengelola data masjid',
       emailAddress: 'Alamat Email',
       password: 'Kata Sandi',
-      emailPlaceholder: 'admin@mosque.com',
       passwordPlaceholder: 'Masukkan kata sandi Anda',
       signingIn: 'Sedang masuk...',
       signIn: 'Masuk',
@@ -31,7 +30,6 @@ const Login: React.FC = () => {
       subtitle: 'Sign in to manage mosque data',
       emailAddress: 'Email Address',
       password: 'Password',
-      emailPlaceholder: 'admin@mosque.com',
       passwordPlaceholder: 'Enter your password',
       signingIn: 'Signing in...',
       signIn: 'Sign In',
@@ -93,7 +91,7 @@ const Login: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder={currentContent.emailPlaceholder}
+                  placeholder={"Masukkan Email Anda"}
                 />
               </div>
             </div>
@@ -147,12 +145,6 @@ const Login: React.FC = () => {
             >
               {currentContent.backToHome}
             </Link>
-            
-            <div className="mt-4 p-4 bg-gray-50 rounded-md">
-              <p className="text-sm text-gray-600 mb-2">{currentContent.demoCredentials}</p>
-              <p className="text-xs text-gray-500">Email: admin@mosque.com</p>
-              <p className="text-xs text-gray-500">Password: admin123</p>
-            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut, Globe } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
@@ -28,6 +28,7 @@ const Navigation: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { language, setLanguage } = React.useContext(LanguageContext);
 
   useEffect(() => {
@@ -195,35 +196,55 @@ const Navigation: React.FC = () => {
             <div className="px-2 pt-2 pb-3 space-y-1">
               <Link 
                 to="/" 
-                className="block px-3 py-2 text-gray-200 hover:text-amber-400 transition-colors duration-200"
+                className={`block px-3 py-2 transition-colors duration-200 ${
+                  location.pathname === '/' 
+                    ? 'text-amber-400 bg-emerald-700 rounded-md' 
+                    : 'text-gray-200 hover:text-amber-400'
+                }`}
                 onClick={() => setIsOpen(false)}
               >
                 {currentContent.home}
               </Link>
               <Link 
                 to="/leadership" 
-                className="block px-3 py-2 text-gray-200 hover:text-amber-400 transition-colors duration-200"
+                className={`block px-3 py-2 transition-colors duration-200 ${
+                  location.pathname === '/leadership' 
+                    ? 'text-amber-400 bg-emerald-700 rounded-md' 
+                    : 'text-gray-200 hover:text-amber-400'
+                }`}
                 onClick={() => setIsOpen(false)}
               >
                 {currentContent.leadership}
               </Link>
               <Link 
                 to="/prayers" 
-                className="block px-3 py-2 text-gray-200 hover:text-amber-400 transition-colors duration-200"
+                className={`block px-3 py-2 transition-colors duration-200 ${
+                  location.pathname === '/prayers' 
+                    ? 'text-amber-400 bg-emerald-700 rounded-md' 
+                    : 'text-gray-200 hover:text-amber-400'
+                }`}
                 onClick={() => setIsOpen(false)}
               >
                 {currentContent.prayerTimes}
               </Link>
               <Link 
                 to="/infaq" 
-                className="block px-3 py-2 text-gray-200 hover:text-amber-400 transition-colors duration-200"
+                className={`block px-3 py-2 transition-colors duration-200 ${
+                  location.pathname === '/infaq' 
+                    ? 'text-amber-400 bg-emerald-700 rounded-md' 
+                    : 'text-gray-200 hover:text-amber-400'
+                }`}
                 onClick={() => setIsOpen(false)}
               >
                 {currentContent.infaqReport}
               </Link>
               <Link 
                 to="/announcements" 
-                className="block px-3 py-2 text-gray-200 hover:text-amber-400 transition-colors duration-200"
+                className={`block px-3 py-2 transition-colors duration-200 ${
+                  location.pathname === '/announcements' 
+                    ? 'text-amber-400 bg-emerald-700 rounded-md' 
+                    : 'text-gray-200 hover:text-amber-400'
+                }`}
                 onClick={() => setIsOpen(false)}
               >
                 {currentContent.announcements}
@@ -232,7 +253,11 @@ const Navigation: React.FC = () => {
                 <>
                   <Link 
                     to="/admin" 
-                    className="block px-3 py-2 bg-amber-600 text-white rounded-md mx-3 mt-2"
+                    className={`block px-3 py-2 rounded-md mx-3 mt-2 transition-colors duration-200 ${
+                      location.pathname === '/admin' 
+                        ? 'bg-amber-500 text-white' 
+                        : 'bg-amber-600 hover:bg-amber-700 text-white'
+                    }`}
                     onClick={() => setIsOpen(false)}
                   >
                     {currentContent.adminDashboard}

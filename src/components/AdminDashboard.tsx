@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, Clock, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Settings, Menu } from 'lucide-react';
-import { supabase, Leadership, PrayerSchedule, FinancialRecord, Announcement, User } from '../lib/supabase';
+import { Users, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Settings } from 'lucide-react';
+import { supabase, Leadership, FinancialRecord, Announcement, User } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
 import ChangePassword from './ChangePassword';
 
