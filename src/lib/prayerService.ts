@@ -64,28 +64,28 @@ const CORS_PROXIES = [
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?',
   'https://thingproxy.freeboard.io/fetch/',
-  'https://cors-anywhere.herokuapp.com/'
+  'https://cors-anywhere.herokuapp.com/',
+  'https://api.codetabs.com/v1/proxy?quest='
 ];
 
 class PrayerService {
   private async makeRequest(url: string, attempt: number = 0): Promise<Response> {
-    const maxAttempts = CORS_PROXIES.length + 2; // Direct + simple + proxy attempts
+    const maxAttempts = CORS_PROXIES.length + 1; // Direct + proxy attempts
     
     try {
       if (attempt === 0) {
-        // Direct API call with minimal headers
+        // Direct API call - this should work since api.aladhan.com is in CSP
+        console.log('Attempting direct API call to:', url);
         return await fetch(url, {
           method: 'GET',
           mode: 'cors',
         });
-      } else if (attempt === 1) {
-        // Simple API call with no headers
-        return await fetch(url);
       } else {
         // Use CORS proxy
-        const proxyIndex = attempt - 2;
+        const proxyIndex = attempt - 1;
         if (proxyIndex < CORS_PROXIES.length) {
           const proxyUrl = CORS_PROXIES[proxyIndex] + url;
+          console.log(`Attempting proxy call (${attempt}):`, proxyUrl);
           return await fetch(proxyUrl, {
             method: 'GET',
             headers: {
