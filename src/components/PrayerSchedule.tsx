@@ -1,39 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Sun, Sunrise, Sunset, Moon, MapPin, ChevronDown, Search, X } from 'lucide-react';
-
-interface PrayerTime {
-  id: string;
-  prayer_name: string;
-  time: string;
-  date: string;
-}
-
-interface City {
-  name: string;
-  nameEn: string;
-  latitude: number;
-  longitude: number;
-}
-
-interface AladhanResponse {
-  code: number;
-  status: string;
-  data: {
-    timings: {
-      Fajr: string;
-      Sunrise: string;
-      Dhuhr: string;
-      Asr: string;
-      Sunset: string;
-      Maghrib: string;
-      Isha: string;
-    };
-    date: {
-      readable: string;
-      timestamp: string;
-    };
-  };
-}
+import { prayerService, type PrayerTime, type City } from '../lib/prayerService';
 
 const PrayerSchedule: React.FC = () => {
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
@@ -92,29 +59,8 @@ const PrayerSchedule: React.FC = () => {
 
   const currentContent = content[language];
 
-  // List of cities in Indonesia with their coordinates
-  const cities: City[] = [
-    { name: 'Jakarta Pusat', nameEn: 'Central Jakarta', latitude: -6.1754, longitude: 106.8272 },
-    { name: 'Jakarta Utara', nameEn: 'North Jakarta', latitude: -6.1384, longitude: 106.8661 },
-    { name: 'Jakarta Barat', nameEn: 'West Jakarta', latitude: -6.1697, longitude: 106.7893 },
-    { name: 'Jakarta Selatan', nameEn: 'South Jakarta', latitude: -6.2297, longitude: 106.7997 },
-    { name: 'Jakarta Timur', nameEn: 'East Jakarta', latitude: -6.2088, longitude: 106.8456 },
-    { name: 'Bandung', nameEn: 'Bandung', latitude: -6.9175, longitude: 107.6191 },
-    { name: 'Surabaya', nameEn: 'Surabaya', latitude: -7.2575, longitude: 112.7521 },
-    { name: 'Medan', nameEn: 'Medan', latitude: 3.5952, longitude: 98.6722 },
-    { name: 'Semarang', nameEn: 'Semarang', latitude: -6.9932, longitude: 110.4203 },
-    { name: 'Palembang', nameEn: 'Palembang', latitude: -2.9761, longitude: 104.7754 },
-    { name: 'Makassar', nameEn: 'Makassar', latitude: -5.1477, longitude: 119.4327 },
-    { name: 'Tangerang', nameEn: 'Tangerang', latitude: -6.2024, longitude: 106.6527 },
-    { name: 'Depok', nameEn: 'Depok', latitude: -6.4025, longitude: 106.7942 },
-    { name: 'Bekasi', nameEn: 'Bekasi', latitude: -6.2349, longitude: 106.9896 },
-    { name: 'Bogor', nameEn: 'Bogor', latitude: -6.5971, longitude: 106.8060 },
-    { name: 'Yogyakarta', nameEn: 'Yogyakarta', latitude: -7.7971, longitude: 110.3708 },
-    { name: 'Malang', nameEn: 'Malang', latitude: -7.9839, longitude: 112.6214 },
-    { name: 'Denpasar', nameEn: 'Denpasar', latitude: -8.6500, longitude: 115.2167 },
-    { name: 'Padang', nameEn: 'Padang', latitude: -0.9444, longitude: 100.4172 },
-    { name: 'Manado', nameEn: 'Manado', latitude: 1.4748, longitude: 124.8421 }
-  ];
+  // Get cities from service
+  const cities = prayerService.getCities();
 
   const filteredCities = cities.filter(city => 
     (language === 'id' ? city.name : city.nameEn)
@@ -133,71 +79,39 @@ const PrayerSchedule: React.FC = () => {
       setCurrentDate(dateStr);
       
       // Get selected city coordinates
-      const selectedCityData = cities.find(city => 
-        city.name.toLowerCase().replace(/\s+/g, '') === selectedCity ||
-        city.nameEn.toLowerCase().replace(/\s+/g, '') === selectedCity
-      ) || cities[0]; // Default to first city if not found
-      
+      const selectedCityData = prayerService.findCity(selectedCity) || prayerService.getDefaultCity();
       const { latitude, longitude } = selectedCityData;
       
-      const response = await fetch(
-        `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${latitude}&longitude=${longitude}&method=8`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch prayer times');
+      try {
+        // Try to fetch from API service
+        const prayerTimes = await prayerService.fetchPrayerTimes(dateStr, latitude, longitude, language);
+        setPrayers(prayerTimes);
+      } catch (apiError) {
+        console.warn('API call failed, using fallback times:', apiError);
+        
+        // Use fallback prayer times
+        const fallbackTimes = prayerService.getFallbackPrayerTimes(dateStr, language);
+        setPrayers(fallbackTimes);
+        
+        // Show a warning but don't treat it as an error
+        console.log('Using fallback prayer times due to API unavailability');
       }
-      
-      const data: AladhanResponse = await response.json();
-      
-      if (data.code !== 200) {
-        throw new Error(data.status || 'Failed to fetch prayer times');
-      }
-      
-      const timings = data.data.timings;
-      const prayerTimes: PrayerTime[] = [
-        {
-          id: '1',
-          prayer_name: language === 'id' ? 'Subuh' : 'Fajr',
-          time: timings.Fajr,
-          date: dateStr
-        },
-        {
-          id: '2',
-          prayer_name: language === 'id' ? 'Terbit' : 'Sunrise',
-          time: timings.Sunrise,
-          date: dateStr
-        },
-        {
-          id: '3',
-          prayer_name: language === 'id' ? 'Dzuhur' : 'Dhuhr',
-          time: timings.Dhuhr,
-          date: dateStr
-        },
-        {
-          id: '4',
-          prayer_name: language === 'id' ? 'Ashar' : 'Asr',
-          time: timings.Asr,
-          date: dateStr
-        },
-        {
-          id: '5',
-          prayer_name: language === 'id' ? 'Maghrib' : 'Maghrib',
-          time: timings.Maghrib,
-          date: dateStr
-        },
-        {
-          id: '6',
-          prayer_name: language === 'id' ? 'Isya' : 'Isha',
-          time: timings.Isha,
-          date: dateStr
-        }
-      ];
-      
-      setPrayers(prayerTimes);
     } catch (error) {
       console.error('Error fetching prayer schedule:', error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch prayer times');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to fetch prayer times';
+      if (error instanceof Error) {
+        if (error.message.includes('CORS') || error.message.includes('Content Security Policy')) {
+          errorMessage = 'Network access blocked by browser security. Please try refreshing the page or contact support.';
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Unable to connect to prayer time service. Please check your internet connection.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -210,9 +124,7 @@ const PrayerSchedule: React.FC = () => {
   };
 
   const getSelectedCityName = () => {
-    const city = cities.find(city => 
-      city.name.toLowerCase().replace(/\s+/g, '') === selectedCity
-    );
+    const city = prayerService.findCity(selectedCity);
     return city ? (language === 'id' ? city.name : city.nameEn) : 'Jakarta Pusat';
   };
 
