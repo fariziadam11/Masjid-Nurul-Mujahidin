@@ -137,7 +137,9 @@ const AdminDashboard: React.FC = () => {
 
   const handleCreate = async (table: string) => {
     try {
-      const { error } = await supabase.from(table).insert([formData]);
+      // Map table names to actual database table names
+      const actualTableName = table === 'financial' ? 'financial_records' : table;
+      const { error } = await supabase.from(actualTableName).insert([formData]);
       if (error) throw error;
       setFormData({});
       setEditingItem(null);
@@ -149,7 +151,9 @@ const AdminDashboard: React.FC = () => {
 
   const handleUpdate = async (table: string, id: string) => {
     try {
-      const { error } = await supabase.from(table).update(formData).eq('id', id);
+      // Map table names to actual database table names
+      const actualTableName = table === 'financial' ? 'financial_records' : table;
+      const { error } = await supabase.from(actualTableName).update(formData).eq('id', id);
       if (error) throw error;
       setFormData({});
       setEditingItem(null);
@@ -279,14 +283,27 @@ const AdminDashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
-                <input
-                  type="number"
-                  value={formData.amount || ''}
-                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amount (Rupiah)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-gray-500">Rp</span>
+                  <input
+                    type="text"
+                    value={formData.amount ? new Intl.NumberFormat('id-ID').format(formData.amount) : ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^\d]/g, '');
+                      setFormData({ ...formData, amount: value ? parseFloat(value) : '' });
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace(/[^\d]/g, '');
+                      if (value) {
+                        setFormData({ ...formData, amount: parseFloat(value) });
+                      }
+                    }}
+                    placeholder="0"
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
