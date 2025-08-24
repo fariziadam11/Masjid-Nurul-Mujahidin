@@ -1,6 +1,29 @@
 // Prayer Schedule Service
 // Handles API calls to Aladhan API with fallback mechanisms
 
+// Safe environment detection that works in both browser and Node.js
+function isProduction(): boolean {
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  }
+  // In Node.js/test environment, default to development
+  return false;
+}
+
+// Safe origin detection that works in both browser and Node.js
+function getOrigin(): string {
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.origin;
+  }
+  // In Node.js/test environment, return a default origin
+  return 'http://localhost:3000';
+}
+
+// Check if we're in a test environment
+function isTestEnvironment(): boolean {
+  return typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+}
+
 interface AladhanResponse {
   code: number;
   status: string;
@@ -71,12 +94,12 @@ const CORS_PROXIES = [
 class PrayerService {
   private async makeRequest(url: string, attempt: number = 0): Promise<Response> {
     const maxAttempts = CORS_PROXIES.length + 1; // Direct + proxy attempts
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    const isProd = isProduction();
     
     try {
       if (attempt === 0) {
         // Direct API call - this works in development
-        console.log(`Making direct API call to: ${url} (${isProduction ? 'production' : 'development'})`);
+        console.log(`Making direct API call to: ${url} (${isProd ? 'production' : 'development'})`);
         const response = await fetch(url, {
           method: 'GET',
           mode: 'cors',
@@ -93,7 +116,7 @@ class PrayerService {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'Origin': window.location.origin,
+              'Origin': getOrigin(),
             },
           });
           console.log(`Proxy call (${attempt}) response status:`, response.status);
@@ -104,8 +127,9 @@ class PrayerService {
       console.warn(`Attempt ${attempt + 1} failed:`, error);
       
       if (attempt < maxAttempts - 1) {
-        // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        // Wait a bit before retrying (shorter delays in test mode)
+        const delay = isTestEnvironment() ? 10 : 1000 * (attempt + 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
         return this.makeRequest(url, attempt + 1);
       }
     }
@@ -115,7 +139,7 @@ class PrayerService {
 
   async fetchPrayerTimes(date: string, latitude: number, longitude: number, language: 'id' | 'en' = 'id'): Promise<PrayerTime[]> {
     const url = `https://api.aladhan.com/v1/timings/${date}?latitude=${latitude}&longitude=${longitude}&method=8`;
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    const isProd = isProduction();
     
     try {
       const response = await this.makeRequest(url);
@@ -132,7 +156,7 @@ class PrayerService {
         throw new Error(data.status || 'API returned error');
       }
       
-      console.log(`Successfully fetched prayer times for ${date} (${isProduction ? 'production' : 'development'})`);
+      console.log(`Successfully fetched prayer times for ${date} (${isProd ? 'production' : 'development'})`);
       
       const timings = data.data.timings;
       return [
@@ -179,7 +203,7 @@ class PrayerService {
       // Provide more specific error information for production
       if (error instanceof Error) {
         if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-          console.warn(`CORS or network error detected in ${isProduction ? 'production' : 'development'} - using fallback times`);
+          console.warn(`CORS or network error detected in ${isProd ? 'production' : 'development'} - using fallback times`);
         }
       }
       
