@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navigation, { LanguageProvider } from './components/Navigation';
 import Footer from './components/Footer';
@@ -8,7 +9,6 @@ import InfaqReport from './components/InfaqReport';
 import Announcements from './components/Announcements';
 import Login from './components/Login';
 import AdminDashboard from './components/AdminDashboard';
-import MonitoringDashboard from './components/MonitoringDashboard';
 
 function App() {
   return (
@@ -25,7 +25,6 @@ function App() {
               <Route path="/announcements" element={<Announcements />} />
               <Route path="/login" element={<Login />} />
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/monitoring" element={<MonitoringDashboard />} />
             </Routes>
           </main>
           <Footer />

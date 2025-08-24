@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Settings, Activity } from 'lucide-react';
+import { Users, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Settings } from 'lucide-react';
 import { supabase, Leadership, FinancialRecord, Announcement, User } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
 import ChangePassword from './ChangePassword';
-import { logInfo, logError, logWarn, logSecurity } from '../lib/monitoring';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('leadership');
@@ -114,13 +113,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     await supabase.auth.signOut();
-    
-    // Log logout
-    logSecurity('logout', 'low', {}, user?.id, user?.email);
-    logInfo('auth', 'user_logout', { userId: user?.id }, user?.id, user?.email);
-    
     navigate('/');
   };
 
@@ -148,16 +141,11 @@ const AdminDashboard: React.FC = () => {
       const actualTableName = table === 'financial' ? 'financial_records' : table;
       const { error } = await supabase.from(actualTableName).insert([formData]);
       if (error) throw error;
-      
-      // Log successful creation
-      logInfo('admin', 'data_created', { table: actualTableName, data: formData });
-      
       setFormData({});
       setEditingItem(null);
       fetchAllData();
     } catch (error) {
       console.error('Error creating:', error);
-      logError('admin', 'create_error', { table, error: error }, undefined, undefined);
     }
   };
 
@@ -167,16 +155,11 @@ const AdminDashboard: React.FC = () => {
       const actualTableName = table === 'financial' ? 'financial_records' : table;
       const { error } = await supabase.from(actualTableName).update(formData).eq('id', id);
       if (error) throw error;
-      
-      // Log successful update
-      logInfo('admin', 'data_updated', { table: actualTableName, id, data: formData });
-      
       setFormData({});
       setEditingItem(null);
       fetchAllData();
     } catch (error) {
       console.error('Error updating:', error);
-      logError('admin', 'update_error', { table, id, error: error }, undefined, undefined);
     }
   };
 
@@ -186,14 +169,9 @@ const AdminDashboard: React.FC = () => {
     try {
       const { error } = await supabase.from(table).delete().eq('id', id);
       if (error) throw error;
-      
-      // Log successful deletion
-      logWarn('admin', 'data_deleted', { table, id });
-      
       fetchAllData();
     } catch (error) {
       console.error('Error deleting:', error);
-      logError('admin', 'delete_error', { table, id, error: error }, undefined, undefined);
     }
   };
 
@@ -382,15 +360,15 @@ const AdminDashboard: React.FC = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md lg:max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base sm:text-lg font-semibold pr-2">
+            <h3 className="text-lg font-semibold">
               {editingItem.action === 'create' ? 'Add New' : 'Edit'} {editingItem.type}
             </h3>
             <button
               onClick={resetForm}
-              className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 flex-shrink-0"
+              className="text-gray-400 hover:text-gray-600"
             >
               <X className="h-5 w-5" />
             </button>
@@ -402,7 +380,7 @@ const AdminDashboard: React.FC = () => {
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
               <button
                 type="submit"
-                className="flex-1 bg-emerald-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-md hover:bg-emerald-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
+                className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <Save className="h-4 w-4" />
                 <span>{currentContent.save}</span>
@@ -410,7 +388,7 @@ const AdminDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={resetForm}
-                className="flex-1 bg-gray-300 text-gray-700 px-3 sm:px-4 py-2 sm:py-3 rounded-md hover:bg-gray-400 transition-colors text-sm sm:text-base"
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors"
               >
                 {currentContent.cancel}
               </button>
@@ -440,30 +418,28 @@ const AdminDashboard: React.FC = () => {
       />
       {/* Header */}
       <div className="bg-emerald-900 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
-              <Link to="/" className="text-base sm:text-lg lg:text-xl font-bold truncate">Masjid Nurul Mujahidin</Link>
-              <span className="hidden md:inline text-gray-300">|</span>
-              <span className="hidden md:inline text-base lg:text-lg font-semibold truncate">{currentContent.title}</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link to="/" className="text-lg sm:text-xl font-bold truncate">Masjid Nurul Mujahidin</Link>
+              <span className="hidden sm:inline text-gray-300">|</span>
+              <span className="hidden sm:inline text-lg font-semibold">{currentContent.title}</span>
             </div>
             
-            <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4 flex-shrink-0">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <button
                 onClick={() => setShowChangePassword(true)}
-                className="flex items-center space-x-1 sm:space-x-2 text-gray-300 hover:text-white transition-colors p-1 sm:p-2 rounded"
-                title={currentContent.changePassword}
+                className="flex items-center space-x-1 sm:space-x-2 text-gray-300 hover:text-white transition-colors"
               >
                 <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="hidden lg:inline">{currentContent.changePassword}</span>
+                <span className="hidden sm:inline">{currentContent.changePassword}</span>
               </button>
               <button
                 onClick={handleSignOut}
-                className="flex items-center space-x-1 sm:space-x-2 text-gray-300 hover:text-white transition-colors p-1 sm:p-2 rounded"
-                title={currentContent.signOut}
+                className="flex items-center space-x-1 sm:space-x-2 text-gray-300 hover:text-white transition-colors"
               >
                 <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="hidden lg:inline">{currentContent.signOut}</span>
+                <span className="hidden sm:inline">{currentContent.signOut}</span>
               </button>
             </div>
           </div>
@@ -471,12 +447,12 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white shadow-sm border-b overflow-x-auto">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-          <nav className="flex space-x-1 sm:space-x-4 lg:space-x-8 min-w-max">
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex flex-wrap space-x-2 sm:space-x-8">
             <button
               onClick={() => setActiveTab('leadership')}
-              className={`py-3 sm:py-4 px-2 sm:px-3 lg:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors ${
+              className={`py-2 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'leadership'
                   ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -489,7 +465,7 @@ const AdminDashboard: React.FC = () => {
 
             <button
               onClick={() => setActiveTab('financial')}
-              className={`py-3 sm:py-4 px-2 sm:px-3 lg:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors ${
+              className={`py-2 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'financial'
                   ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -501,7 +477,7 @@ const AdminDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('announcements')}
-              className={`py-3 sm:py-4 px-2 sm:px-3 lg:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors ${
+              className={`py-2 sm:py-4 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'announcements'
                   ? 'border-emerald-500 text-emerald-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -511,32 +487,20 @@ const AdminDashboard: React.FC = () => {
               <span className="hidden sm:inline">{currentContent.announcements}</span>
               <span className="sm:hidden">News</span>
             </button>
-            <button
-              onClick={() => setActiveTab('monitoring')}
-              className={`py-3 sm:py-4 px-2 sm:px-3 lg:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors ${
-                activeTab === 'monitoring'
-                  ? 'border-emerald-500 text-emerald-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Activity className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Monitoring</span>
-              <span className="sm:hidden">Monitoring</span>
-            </button>
           </nav>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Leadership Tab */}
         {activeTab === 'leadership' && (
           <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 space-y-3 sm:space-y-0">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{currentContent.leadership}</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{currentContent.leadership}</h2>
               <button
                 onClick={() => openForm('leadership', 'create')}
-                className="bg-emerald-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center text-sm sm:text-base"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center"
               >
                 <Plus className="h-4 w-4" />
                 <span>{currentContent.addNew}</span>
@@ -544,128 +508,71 @@ const AdminDashboard: React.FC = () => {
             </div>
             
             {/* Desktop Table */}
-            <div className="hidden lg:block bg-white shadow-lg rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Role
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
+            <div className="hidden sm:block bg-white shadow-lg rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {leaders.map((leader) => (
+                    <tr key={leader.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {leader.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {leader.role}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openForm('leadership', 'edit', leader)}
+                            className="text-emerald-600 hover:text-emerald-900"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete('leadership', leader.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {leaders.map((leader) => (
-                      <tr key={leader.id} className="hover:bg-gray-50">
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {leader.name}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {leader.role}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => openForm('leadership', 'edit', leader)}
-                              className="text-emerald-600 hover:text-emerald-900 p-1 rounded hover:bg-emerald-50"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete('leadership', leader.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Tablet Table */}
-            <div className="hidden sm:block lg:hidden bg-white shadow-lg rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Role
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {leaders.map((leader) => (
-                      <tr key={leader.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {leader.name}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {leader.role}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => openForm('leadership', 'edit', leader)}
-                              className="text-emerald-600 hover:text-emerald-900 p-1 rounded hover:bg-emerald-50"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete('leadership', leader.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Mobile Cards */}
-            <div className="sm:hidden space-y-3">
+            <div className="sm:hidden space-y-4">
               {leaders.map((leader) => (
                 <div key={leader.id} className="bg-white shadow-lg rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{leader.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{leader.role}</p>
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{leader.name}</h3>
+                      <p className="text-sm text-gray-500">{leader.role}</p>
                     </div>
-                    <div className="flex space-x-1 ml-3 flex-shrink-0">
+                    <div className="flex space-x-2">
                       <button
                         onClick={() => openForm('leadership', 'edit', leader)}
-                        className="text-emerald-600 hover:text-emerald-900 p-2 rounded-full hover:bg-emerald-50"
-                        title="Edit"
+                        className="text-emerald-600 hover:text-emerald-900 p-1"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete('leadership', leader.id)}
-                        className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50"
-                        title="Delete"
+                        className="text-red-600 hover:text-red-900 p-1"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -682,11 +589,11 @@ const AdminDashboard: React.FC = () => {
         {/* Financial Records Tab */}
         {activeTab === 'financial' && (
           <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 space-y-3 sm:space-y-0">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{currentContent.financialRecords}</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{currentContent.financialRecords}</h2>
               <button
                 onClick={() => openForm('financial', 'create')}
-                className="bg-emerald-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center text-sm sm:text-base"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center"
               >
                 <Plus className="h-4 w-4" />
                 <span>{currentContent.addNew}</span>
@@ -694,153 +601,76 @@ const AdminDashboard: React.FC = () => {
             </div>
             
             {/* Desktop Table */}
-            <div className="hidden lg:block bg-white shadow-lg rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Description
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {records.map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50">
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(record.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                          {record.description}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              record.type === 'income'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
+            <div className="hidden sm:block bg-white shadow-lg rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {records.map((record) => (
+                    <tr key={record.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(record.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{record.description}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            record.type === 'income'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {record.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(Number(record.amount))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openForm('financial', 'edit', record)}
+                            className="text-emerald-600 hover:text-emerald-900"
                           >
-                            {record.type}
-                          </span>
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatCurrency(Number(record.amount))}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => openForm('financial', 'edit', record)}
-                              className="text-emerald-600 hover:text-emerald-900 p-1 rounded hover:bg-emerald-50"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete('financial_records', record.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Tablet Table */}
-            <div className="hidden sm:block lg:hidden bg-white shadow-lg rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Description
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Type
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {records.map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(record.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
-                          {record.description}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              record.type === 'income'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete('financial_records', record.id)}
+                            className="text-red-600 hover:text-red-900"
                           >
-                            {record.type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {formatCurrency(Number(record.amount))}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => openForm('financial', 'edit', record)}
-                              className="text-emerald-600 hover:text-emerald-900 p-1 rounded hover:bg-emerald-50"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete('financial_records', record.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Mobile Cards */}
-            <div className="sm:hidden space-y-3">
+            <div className="sm:hidden space-y-4">
               {records.map((record) => (
                 <div key={record.id} className="bg-white shadow-lg rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-500">
                           {new Date(record.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
@@ -855,21 +685,19 @@ const AdminDashboard: React.FC = () => {
                           {record.type}
                         </span>
                       </div>
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 truncate">{record.description}</h3>
-                      <p className="text-base sm:text-lg font-bold text-gray-900">{formatCurrency(Number(record.amount))}</p>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{record.description}</h3>
+                      <p className="text-lg font-bold text-gray-900">{formatCurrency(Number(record.amount))}</p>
                     </div>
-                    <div className="flex space-x-1 ml-3 flex-shrink-0">
+                    <div className="flex space-x-2 ml-4">
                       <button
                         onClick={() => openForm('financial', 'edit', record)}
-                        className="text-emerald-600 hover:text-emerald-900 p-2 rounded-full hover:bg-emerald-50"
-                        title="Edit"
+                        className="text-emerald-600 hover:text-emerald-900 p-1"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete('financial_records', record.id)}
-                        className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50"
-                        title="Delete"
+                        className="text-red-600 hover:text-red-900 p-1"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -884,11 +712,11 @@ const AdminDashboard: React.FC = () => {
         {/* Announcements Tab */}
         {activeTab === 'announcements' && (
           <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 space-y-3 sm:space-y-0">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{currentContent.announcements}</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{currentContent.announcements}</h2>
               <button
                 onClick={() => openForm('announcements', 'create')}
-                className="bg-emerald-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center text-sm sm:text-base"
+                className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition-colors flex items-center space-x-2 w-full sm:w-auto justify-center"
               >
                 <Plus className="h-4 w-4" />
                 <span>{currentContent.addNew}</span>
@@ -896,145 +724,82 @@ const AdminDashboard: React.FC = () => {
             </div>
             
             {/* Desktop Table */}
-            <div className="hidden lg:block bg-white shadow-lg rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Title
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Content
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
+            <div className="hidden sm:block bg-white shadow-lg rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Title
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Content
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {announcements.map((announcement) => (
+                    <tr key={announcement.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {announcement.title}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                        {announcement.content}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(announcement.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openForm('announcements', 'edit', announcement)}
+                            className="text-emerald-600 hover:text-emerald-900"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete('announcements', announcement.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {announcements.map((announcement) => (
-                      <tr key={announcement.id} className="hover:bg-gray-50">
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {announcement.title}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                          {announcement.content}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(announcement.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
-                        </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => openForm('announcements', 'edit', announcement)}
-                              className="text-emerald-600 hover:text-emerald-900 p-1 rounded hover:bg-emerald-50"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete('announcements', announcement.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Tablet Table */}
-            <div className="hidden sm:block lg:hidden bg-white shadow-lg rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Title
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Content
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {announcements.map((announcement) => (
-                      <tr key={announcement.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {announcement.title}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
-                          {announcement.content}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(announcement.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => openForm('announcements', 'edit', announcement)}
-                              className="text-emerald-600 hover:text-emerald-900 p-1 rounded hover:bg-emerald-50"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete('announcements', announcement.id)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {/* Mobile Cards */}
-            <div className="sm:hidden space-y-3">
+            <div className="sm:hidden space-y-4">
               {announcements.map((announcement) => (
                 <div key={announcement.id} className="bg-white shadow-lg rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-500">
                           {new Date(announcement.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
                         </span>
                       </div>
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 truncate">{announcement.title}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{announcement.title}</h3>
                       <p className="text-sm text-gray-700 line-clamp-3">{announcement.content}</p>
                     </div>
-                    <div className="flex space-x-1 ml-3 flex-shrink-0">
+                    <div className="flex space-x-2 ml-4">
                       <button
                         onClick={() => openForm('announcements', 'edit', announcement)}
-                        className="text-emerald-600 hover:text-emerald-900 p-2 rounded-full hover:bg-emerald-50"
-                        title="Edit"
+                        className="text-emerald-600 hover:text-emerald-900 p-1"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete('announcements', announcement.id)}
-                        className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50"
-                        title="Delete"
+                        className="text-red-600 hover:text-red-900 p-1"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -1042,31 +807,6 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Monitoring Tab */}
-        {activeTab === 'monitoring' && (
-          <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 space-y-3 sm:space-y-0">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">System Monitoring</h2>
-            </div>
-            
-            <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6">
-              <p className="text-gray-600 mb-4 text-sm sm:text-base">
-                {language === 'id' 
-                  ? 'Dashboard monitoring tersedia di halaman terpisah untuk pengalaman yang lebih baik.'
-                  : 'Monitoring dashboard is available on a separate page for better experience.'
-                }
-              </p>
-              <a
-                href="/monitoring"
-                className="bg-emerald-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-md hover:bg-emerald-700 transition-colors inline-flex items-center space-x-2 text-sm sm:text-base"
-              >
-                <Activity className="h-4 w-4" />
-                <span>{language === 'id' ? 'Buka Dashboard Monitoring' : 'Open Monitoring Dashboard'}</span>
-              </a>
             </div>
           </div>
         )}
