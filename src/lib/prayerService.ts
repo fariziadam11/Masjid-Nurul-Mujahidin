@@ -59,7 +59,7 @@ const cities: City[] = [
   { name: 'Manado', nameEn: 'Manado', latitude: 1.4748, longitude: 124.8421 }
 ];
 
-// CORS proxy options
+// CORS proxy options for production fallback
 const CORS_PROXIES = [
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?',
@@ -71,28 +71,33 @@ const CORS_PROXIES = [
 class PrayerService {
   private async makeRequest(url: string, attempt: number = 0): Promise<Response> {
     const maxAttempts = CORS_PROXIES.length + 1; // Direct + proxy attempts
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
     
     try {
       if (attempt === 0) {
-        // Direct API call - this should work since api.aladhan.com is in CSP
-        console.log('Attempting direct API call to:', url);
-        return await fetch(url, {
+        // Direct API call - this works in development
+        console.log(`Making direct API call to: ${url} (${isProduction ? 'production' : 'development'})`);
+        const response = await fetch(url, {
           method: 'GET',
           mode: 'cors',
         });
+        console.log('Direct API response status:', response.status);
+        return response;
       } else {
-        // Use CORS proxy
+        // Use CORS proxy for production fallback
         const proxyIndex = attempt - 1;
         if (proxyIndex < CORS_PROXIES.length) {
           const proxyUrl = CORS_PROXIES[proxyIndex] + url;
           console.log(`Attempting proxy call (${attempt}):`, proxyUrl);
-          return await fetch(proxyUrl, {
+          const response = await fetch(proxyUrl, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
               'Origin': window.location.origin,
             },
           });
+          console.log(`Proxy call (${attempt}) response status:`, response.status);
+          return response;
         }
       }
     } catch (error) {
@@ -110,6 +115,7 @@ class PrayerService {
 
   async fetchPrayerTimes(date: string, latitude: number, longitude: number, language: 'id' | 'en' = 'id'): Promise<PrayerTime[]> {
     const url = `https://api.aladhan.com/v1/timings/${date}?latitude=${latitude}&longitude=${longitude}&method=8`;
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
     
     try {
       const response = await this.makeRequest(url);
@@ -125,6 +131,8 @@ class PrayerService {
         console.warn(`API returned error code ${data.code}: ${data.status}`);
         throw new Error(data.status || 'API returned error');
       }
+      
+      console.log(`Successfully fetched prayer times for ${date} (${isProduction ? 'production' : 'development'})`);
       
       const timings = data.data.timings;
       return [
@@ -168,10 +176,10 @@ class PrayerService {
     } catch (error) {
       console.error('Prayer service error:', error);
       
-      // Provide more specific error information
+      // Provide more specific error information for production
       if (error instanceof Error) {
         if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-          console.warn('CORS or network error detected - this is expected in some browsers');
+          console.warn(`CORS or network error detected in ${isProduction ? 'production' : 'development'} - using fallback times`);
         }
       }
       
