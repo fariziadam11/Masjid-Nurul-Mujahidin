@@ -99,19 +99,25 @@ class PrayerService {
     try {
       if (attempt === 0) {
         // Direct API call - this works in development
-        console.log(`Making direct API call to: ${url} (${isProd ? 'production' : 'development'})`);
+        if (!isProd) {
+          console.log(`Making direct API call to: ${url} (development)`);
+        }
         const response = await fetch(url, {
           method: 'GET',
           mode: 'cors',
         });
-        console.log('Direct API response status:', response.status);
+        if (!isProd) {
+          console.log('Direct API response status:', response.status);
+        }
         return response;
       } else {
         // Use CORS proxy for production fallback
         const proxyIndex = attempt - 1;
         if (proxyIndex < CORS_PROXIES.length) {
           const proxyUrl = CORS_PROXIES[proxyIndex] + url;
-          console.log(`Attempting proxy call (${attempt}):`, proxyUrl);
+          if (!isProd) {
+            console.log(`Attempting proxy call (${attempt}):`, proxyUrl);
+          }
           const response = await fetch(proxyUrl, {
             method: 'GET',
             headers: {
@@ -119,12 +125,16 @@ class PrayerService {
               'Origin': getOrigin(),
             },
           });
-          console.log(`Proxy call (${attempt}) response status:`, response.status);
+          if (!isProd) {
+            console.log(`Proxy call (${attempt}) response status:`, response.status);
+          }
           return response;
         }
       }
     } catch (error) {
-      console.warn(`Attempt ${attempt + 1} failed:`, error);
+      if (!isProd) {
+        console.warn(`Attempt ${attempt + 1} failed:`, error);
+      }
       
       if (attempt < maxAttempts - 1) {
         // Wait a bit before retrying (shorter delays in test mode)
@@ -145,18 +155,24 @@ class PrayerService {
       const response = await this.makeRequest(url);
       
       if (!response.ok) {
-        console.warn(`API returned status ${response.status}: ${response.statusText}`);
+        if (!isProd) {
+          console.warn(`API returned status ${response.status}: ${response.statusText}`);
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data: AladhanResponse = await response.json();
       
       if (data.code !== 200) {
-        console.warn(`API returned error code ${data.code}: ${data.status}`);
+        if (!isProd) {
+          console.warn(`API returned error code ${data.code}: ${data.status}`);
+        }
         throw new Error(data.status || 'API returned error');
       }
       
-      console.log(`Successfully fetched prayer times for ${date} (${isProd ? 'production' : 'development'})`);
+      if (!isProd) {
+        console.log(`Successfully fetched prayer times for ${date} (development)`);
+      }
       
       const timings = data.data.timings;
       return [
@@ -198,12 +214,16 @@ class PrayerService {
         }
       ];
     } catch (error) {
-      console.error('Prayer service error:', error);
+      if (!isProd) {
+        console.error('Prayer service error:', error);
+      }
       
       // Provide more specific error information for production
       if (error instanceof Error) {
         if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-          console.warn(`CORS or network error detected in ${isProd ? 'production' : 'development'} - using fallback times`);
+          if (!isProd) {
+            console.warn(`CORS or network error detected in development - using fallback times`);
+          }
         }
       }
       
