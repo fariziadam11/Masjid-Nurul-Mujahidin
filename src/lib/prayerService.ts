@@ -61,35 +61,35 @@ const cities: City[] = [
 
 // CORS proxy options
 const CORS_PROXIES = [
-  'https://cors-anywhere.herokuapp.com/',
   'https://api.allorigins.win/raw?url=',
-  'https://thingproxy.freeboard.io/fetch/'
+  'https://corsproxy.io/?',
+  'https://thingproxy.freeboard.io/fetch/',
+  'https://cors-anywhere.herokuapp.com/'
 ];
 
 class PrayerService {
   private async makeRequest(url: string, attempt: number = 0): Promise<Response> {
-    const maxAttempts = CORS_PROXIES.length + 1; // Direct + proxy attempts
+    const maxAttempts = CORS_PROXIES.length + 2; // Direct + simple + proxy attempts
     
     try {
       if (attempt === 0) {
-        // Direct API call
+        // Direct API call with minimal headers
         return await fetch(url, {
           method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
+          mode: 'cors',
         });
+      } else if (attempt === 1) {
+        // Simple API call with no headers
+        return await fetch(url);
       } else {
         // Use CORS proxy
-        const proxyIndex = attempt - 1;
+        const proxyIndex = attempt - 2;
         if (proxyIndex < CORS_PROXIES.length) {
           const proxyUrl = CORS_PROXIES[proxyIndex] + url;
           return await fetch(proxyUrl, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'Content-Type': 'application/json',
               'Origin': window.location.origin,
             },
           });
@@ -115,12 +115,14 @@ class PrayerService {
       const response = await this.makeRequest(url);
       
       if (!response.ok) {
+        console.warn(`API returned status ${response.status}: ${response.statusText}`);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data: AladhanResponse = await response.json();
       
       if (data.code !== 200) {
+        console.warn(`API returned error code ${data.code}: ${data.status}`);
         throw new Error(data.status || 'API returned error');
       }
       
@@ -165,6 +167,14 @@ class PrayerService {
       ];
     } catch (error) {
       console.error('Prayer service error:', error);
+      
+      // Provide more specific error information
+      if (error instanceof Error) {
+        if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+          console.warn('CORS or network error detected - this is expected in some browsers');
+        }
+      }
+      
       throw error;
     }
   }
@@ -195,10 +205,36 @@ class PrayerService {
         Asr: '15:15',
         Maghrib: '18:05',
         Isha: '19:20'
+      },
+      '2025-01-24': {
+        Fajr: '04:30',
+        Sunrise: '05:55',
+        Dhuhr: '12:00',
+        Asr: '15:15',
+        Maghrib: '18:05',
+        Isha: '19:20'
+      },
+      '2025-08-24': {
+        Fajr: '04:45',
+        Sunrise: '06:00',
+        Dhuhr: '12:00',
+        Asr: '15:30',
+        Maghrib: '18:00',
+        Isha: '19:15'
       }
     };
     
-    const times = fallbackTimes[date as keyof typeof fallbackTimes] || fallbackTimes['2025-01-23'];
+    // Default times for any date not in the list
+    const defaultTimes = {
+      Fajr: '04:30',
+      Sunrise: '05:55',
+      Dhuhr: '12:00',
+      Asr: '15:15',
+      Maghrib: '18:05',
+      Isha: '19:20'
+    };
+    
+    const times = fallbackTimes[date as keyof typeof fallbackTimes] || defaultTimes;
     
     return [
       {
