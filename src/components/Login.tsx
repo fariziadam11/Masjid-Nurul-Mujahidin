@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
+import { logInfo, logError, logSecurity } from '../lib/monitoring';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -45,16 +46,28 @@ const Login: React.FC = () => {
     setLoading(true);
     setError('');
 
+    // Log login attempt
+    logSecurity('login_attempt', 'low', { email }, undefined, email);
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        logSecurity('login_failure', 'medium', { email, error: error.message }, undefined, email);
+        throw error;
+      }
+
+      // Log successful login
+      logSecurity('login_success', 'low', { email }, data.user?.id, email);
+      logInfo('auth', 'user_login', { email, userId: data.user?.id }, data.user?.id, email);
+      
       navigate('/admin');
     } catch (error: any) {
       setError(error.message);
+      logError('auth', 'login_error', { email, error: error.message }, undefined, email);
     } finally {
       setLoading(false);
     }
