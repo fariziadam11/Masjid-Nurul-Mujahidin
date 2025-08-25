@@ -1,5 +1,5 @@
 import React from 'react';
-import { Fuel as Mosque, Phone, Mail, MapPin } from 'lucide-react';
+import { Phone, Mail, MapPin } from 'lucide-react';
 import { LanguageContext } from './Navigation';
 
 const Footer: React.FC = () => {
