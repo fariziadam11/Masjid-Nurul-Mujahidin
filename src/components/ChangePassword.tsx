@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, Save, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
+import Swal from 'sweetalert2';
 
 interface ChangePasswordProps {
   isOpen: boolean;
@@ -75,15 +76,40 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({ isOpen, onClose }) => {
     }
 
     try {
+      // Show loading state
+      Swal.fire({
+        title: language === 'id' ? 'Mengubah Password...' : 'Updating Password...',
+        text: language === 'id' ? 'Mohon tunggu sebentar' : 'Please wait a moment',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       // Update password using Supabase Auth
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword
       });
 
       if (updateError) {
+        Swal.close();
         setError(updateError.message);
         return;
       }
+
+      // Close loading and show success message
+      Swal.close();
+      await Swal.fire({
+        title: language === 'id' ? 'Berhasil!' : 'Success!',
+        text: currentContent.updateSuccess,
+        icon: 'success',
+        timer: 2500,
+        showConfirmButton: false,
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          icon: 'text-green-500'
+        }
+      });
 
       setSuccess(currentContent.updateSuccess);
       
@@ -97,6 +123,7 @@ const ChangePassword: React.FC<ChangePasswordProps> = ({ isOpen, onClose }) => {
       }, 2000);
 
     } catch (error: any) {
+      Swal.close();
       setError(error.message);
     } finally {
       setLoading(false);

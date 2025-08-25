@@ -4,6 +4,7 @@ import { Menu, X, LogOut, Globe } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
+import Swal from 'sweetalert2';
 
 // Create a global language context
 export const LanguageContext = React.createContext<{
@@ -46,8 +47,28 @@ const Navigation: React.FC = () => {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
+    const result = await Swal.fire({
+      title: language === 'id' ? 'Konfirmasi Keluar' : 'Confirm Sign Out',
+      text: language === 'id' ? 'Apakah Anda yakin ingin keluar dari sistem?' : 'Are you sure you want to sign out of the system?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: language === 'id' ? 'Ya, Keluar' : 'Yes, Sign Out',
+      cancelButtonText: language === 'id' ? 'Batal' : 'Cancel',
+      reverseButtons: true,
+      focusCancel: true,
+      customClass: {
+        popup: 'rounded-lg shadow-xl',
+        confirmButton: 'px-6 py-2 rounded-md font-medium',
+        cancelButton: 'px-6 py-2 rounded-md font-medium'
+      }
+    });
+
+    if (result.isConfirmed) {
+      await supabase.auth.signOut();
+      navigate('/');
+    }
   };
 
   const content = {

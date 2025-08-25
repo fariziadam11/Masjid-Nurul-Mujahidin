@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
+import Swal from 'sweetalert2';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -46,14 +47,43 @@ const Login: React.FC = () => {
     setError('');
 
     try {
+      // Show loading state
+      Swal.fire({
+        title: language === 'id' ? 'Sedang Masuk...' : 'Signing In...',
+        text: language === 'id' ? 'Mohon tunggu sebentar' : 'Please wait a moment',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        Swal.close();
+        throw error;
+      }
+
+      // Close loading and show success message
+      Swal.close();
+      await Swal.fire({
+        title: language === 'id' ? 'Berhasil Masuk!' : 'Successfully Signed In!',
+        text: language === 'id' ? 'Selamat datang kembali!' : 'Welcome back!',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          icon: 'text-green-500'
+        }
+      });
+
       navigate('/admin');
     } catch (error: any) {
+      Swal.close();
       setError(error.message);
     } finally {
       setLoading(false);

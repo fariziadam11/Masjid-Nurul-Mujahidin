@@ -4,6 +4,7 @@ import { Users, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Sett
 import { supabase, Leadership, FinancialRecord, Announcement, User } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
 import ChangePassword from './ChangePassword';
+import Swal from 'sweetalert2';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('leadership');
@@ -113,8 +114,28 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
+    const result = await Swal.fire({
+      title: language === 'id' ? 'Konfirmasi Keluar' : 'Confirm Sign Out',
+      text: language === 'id' ? 'Apakah Anda yakin ingin keluar dari sistem?' : 'Are you sure you want to sign out of the system?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: language === 'id' ? 'Ya, Keluar' : 'Yes, Sign Out',
+      cancelButtonText: language === 'id' ? 'Batal' : 'Cancel',
+      reverseButtons: true,
+      focusCancel: true,
+      customClass: {
+        popup: 'rounded-lg shadow-xl',
+        confirmButton: 'px-6 py-2 rounded-md font-medium',
+        cancelButton: 'px-6 py-2 rounded-md font-medium'
+      }
+    });
+
+    if (result.isConfirmed) {
+      await supabase.auth.signOut();
+      navigate('/');
+    }
   };
 
   const fetchAllData = async () => {
@@ -141,11 +162,38 @@ const AdminDashboard: React.FC = () => {
       const actualTableName = table === 'financial' ? 'financial_records' : table;
       const { error } = await supabase.from(actualTableName).insert([formData]);
       if (error) throw error;
+      
+      // Show success message
+      await Swal.fire({
+        title: language === 'id' ? 'Berhasil Dibuat!' : 'Successfully Created!',
+        text: language === 'id' ? 'Data telah berhasil ditambahkan.' : 'Data has been successfully created.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          icon: 'text-green-500'
+        }
+      });
+      
       setFormData({});
       setEditingItem(null);
       fetchAllData();
     } catch (error) {
       console.error('Error creating:', error);
+      
+      // Show error message
+      await Swal.fire({
+        title: language === 'id' ? 'Gagal Membuat!' : 'Create Failed!',
+        text: language === 'id' ? 'Terjadi kesalahan saat membuat data. Silakan coba lagi.' : 'An error occurred while creating the data. Please try again.',
+        icon: 'error',
+        confirmButtonText: language === 'id' ? 'OK' : 'OK',
+        confirmButtonColor: '#dc2626',
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          icon: 'text-red-500'
+        }
+      });
     }
   };
 
@@ -155,23 +203,117 @@ const AdminDashboard: React.FC = () => {
       const actualTableName = table === 'financial' ? 'financial_records' : table;
       const { error } = await supabase.from(actualTableName).update(formData).eq('id', id);
       if (error) throw error;
+      
+      // Show success message
+      await Swal.fire({
+        title: language === 'id' ? 'Berhasil Diperbarui!' : 'Successfully Updated!',
+        text: language === 'id' ? 'Data telah berhasil diperbarui.' : 'Data has been successfully updated.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          icon: 'text-green-500'
+        }
+      });
+      
       setFormData({});
       setEditingItem(null);
       fetchAllData();
     } catch (error) {
       console.error('Error updating:', error);
+      
+      // Show error message
+      await Swal.fire({
+        title: language === 'id' ? 'Gagal Memperbarui!' : 'Update Failed!',
+        text: language === 'id' ? 'Terjadi kesalahan saat memperbarui data. Silakan coba lagi.' : 'An error occurred while updating the data. Please try again.',
+        icon: 'error',
+        confirmButtonText: language === 'id' ? 'OK' : 'OK',
+        confirmButtonColor: '#dc2626',
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          icon: 'text-red-500'
+        }
+      });
     }
   };
 
   const handleDelete = async (table: string, id: string) => {
-    if (!confirm(currentContent.confirmDelete)) return;
+    // Get table name for display
+    const getTableDisplayName = (tableName: string) => {
+      switch (tableName) {
+        case 'leadership': return language === 'id' ? 'Kepemimpinan' : 'Leadership';
+        case 'financial_records': return language === 'id' ? 'Catatan Keuangan' : 'Financial Record';
+        case 'announcements': return language === 'id' ? 'Pengumuman' : 'Announcement';
+        default: return 'Item';
+      }
+    };
+
+    const result = await Swal.fire({
+      title: currentContent.confirmDelete,
+      text: `${language === 'id' ? 'Anda yakin ingin menghapus' : 'Are you sure you want to delete'} ${getTableDisplayName(table)}? ${language === 'id' ? 'Tindakan ini tidak dapat dibatalkan!' : 'This action cannot be undone!'}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#3b82f6',
+      confirmButtonText: language === 'id' ? 'Ya, Hapus!' : 'Yes, Delete!',
+      cancelButtonText: language === 'id' ? 'Batal' : 'Cancel',
+      reverseButtons: true,
+      focusCancel: true,
+      customClass: {
+        popup: 'rounded-lg shadow-xl',
+        confirmButton: 'px-6 py-2 rounded-md font-medium',
+        cancelButton: 'px-6 py-2 rounded-md font-medium'
+      }
+    });
+
+    if (!result.isConfirmed) return;
+
+    // Show loading state
+    Swal.fire({
+      title: language === 'id' ? 'Menghapus...' : 'Deleting...',
+      text: language === 'id' ? 'Mohon tunggu sebentar' : 'Please wait a moment',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
 
     try {
       const { error } = await supabase.from(table).delete().eq('id', id);
       if (error) throw error;
+      
+      // Close loading and show success message
+      Swal.close();
+      await Swal.fire({
+        title: language === 'id' ? 'Berhasil Dihapus!' : 'Successfully Deleted!',
+        text: `${getTableDisplayName(table)} ${language === 'id' ? 'telah berhasil dihapus.' : 'has been successfully deleted.'}`,
+        icon: 'success',
+        timer: 2500,
+        showConfirmButton: false,
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          icon: 'text-green-500'
+        }
+      });
+      
       fetchAllData();
     } catch (error) {
       console.error('Error deleting:', error);
+      
+      // Close loading and show error message
+      Swal.close();
+      await Swal.fire({
+        title: language === 'id' ? 'Gagal Menghapus!' : 'Delete Failed!',
+        text: language === 'id' ? 'Terjadi kesalahan saat menghapus data. Silakan coba lagi.' : 'An error occurred while deleting the data. Please try again.',
+        icon: 'error',
+        confirmButtonText: language === 'id' ? 'OK' : 'OK',
+        confirmButtonColor: '#dc2626',
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          icon: 'text-red-500'
+        }
+      });
     }
   };
 
