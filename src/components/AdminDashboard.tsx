@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Settings } from 'lucide-react';
+import { Users, DollarSign, Megaphone, Plus, Edit, Trash2, LogOut, X, Save, Settings, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase, Leadership, FinancialRecord, Announcement, User } from '../lib/supabase';
 import { LanguageContext } from './Navigation';
 import ChangePassword from './ChangePassword';
@@ -23,6 +23,15 @@ const AdminDashboard: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
 
+  // Filter and pagination states
+  const [leadershipFilter, setLeadershipFilter] = useState('');
+  const [financialFilter, setFinancialFilter] = useState('');
+  const [announcementsFilter, setAnnouncementsFilter] = useState('');
+  const [financialTypeFilter, setFinancialTypeFilter] = useState('');
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   const content = {
     id: {
       title: 'Dashboard Admin',
@@ -38,7 +47,17 @@ const AdminDashboard: React.FC = () => {
       save: 'Simpan',
       cancel: 'Batal',
       confirmDelete: 'Apakah Anda yakin ingin menghapus item ini?',
-      changePassword: 'Ubah Password'
+      changePassword: 'Ubah Password',
+      search: 'Cari',
+      allTypes: 'Semua Tipe',
+      income: 'Pemasukan',
+      expenditure: 'Pengeluaran',
+      showing: 'Menampilkan',
+      of: 'dari',
+      entries: 'entri',
+      previous: 'Sebelumnya',
+      next: 'Selanjutnya',
+      noDataFound: 'Tidak ada data ditemukan'
     },
     en: {
       title: 'Admin Dashboard',
@@ -54,7 +73,17 @@ const AdminDashboard: React.FC = () => {
       save: 'Save',
       cancel: 'Cancel',
       confirmDelete: 'Are you sure you want to delete this item?',
-      changePassword: 'Change Password'
+      changePassword: 'Change Password',
+      search: 'Search',
+      allTypes: 'All Types',
+      income: 'Income',
+      expenditure: 'Expenditure',
+      showing: 'Showing',
+      of: 'of',
+      entries: 'entries',
+      previous: 'Previous',
+      next: 'Next',
+      noDataFound: 'No data found'
     }
   };
 
@@ -64,6 +93,11 @@ const AdminDashboard: React.FC = () => {
     checkUser();
     fetchAllData();
   }, []);
+
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [leadershipFilter, financialFilter, announcementsFilter, financialTypeFilter]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -355,6 +389,65 @@ const AdminDashboard: React.FC = () => {
       minimumFractionDigits: 0
     }).format(amount);
   };
+
+  // Filter and pagination logic
+  const getFilteredData = (data: any[], filter: string, typeFilter?: string) => {
+    let filtered = data;
+    
+    if (filter) {
+      filtered = data.filter(item => {
+        if (typeFilter && typeFilter !== '') {
+          // For financial records, also check type filter
+          if (typeFilter && item.type && item.type !== typeFilter) {
+            return false;
+          }
+        }
+        
+        // Search in relevant fields based on data type
+        if (item.name && item.role) {
+          // Leadership
+          return item.name.toLowerCase().includes(filter.toLowerCase()) ||
+                 item.role.toLowerCase().includes(filter.toLowerCase());
+        } else if (item.description && item.type) {
+          // Financial records
+          return item.description.toLowerCase().includes(filter.toLowerCase());
+        } else if (item.title && item.content) {
+          // Announcements
+          return item.title.toLowerCase().includes(filter.toLowerCase()) ||
+                 item.content.toLowerCase().includes(filter.toLowerCase());
+        }
+        return false;
+      });
+    } else if (typeFilter && typeFilter !== '') {
+      // Only type filter applied
+      filtered = data.filter(item => item.type === typeFilter);
+    }
+    
+    return filtered;
+  };
+
+  const getPaginatedData = (data: any[]) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return data.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = (data: any[]) => {
+    return Math.ceil(data.length / itemsPerPage);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Get filtered and paginated data for each tab
+  const filteredLeaders = getFilteredData(leaders, leadershipFilter);
+  const filteredRecords = getFilteredData(records, financialFilter, financialTypeFilter);
+  const filteredAnnouncements = getFilteredData(announcements, announcementsFilter);
+  
+  const paginatedLeaders = getPaginatedData(filteredLeaders);
+  const paginatedRecords = getPaginatedData(filteredRecords);
+  const paginatedAnnouncements = getPaginatedData(filteredAnnouncements);
 
   const renderForm = () => {
     if (!showForm || !editingItem) return null;
@@ -648,6 +741,20 @@ const AdminDashboard: React.FC = () => {
                 <span>{currentContent.addNew}</span>
               </button>
             </div>
+
+            {/* Filter */}
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder={language === 'id' ? 'Cari nama atau peran...' : 'Search name or role...'}
+                  value={leadershipFilter}
+                  onChange={(e) => setLeadershipFilter(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
             
             {/* Desktop Table */}
             <div className="hidden sm:block bg-white shadow-lg rounded-lg overflow-hidden">
@@ -666,7 +773,7 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {leaders.map((leader) => (
+                  {paginatedLeaders.map((leader) => (
                     <tr key={leader.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {leader.name}
@@ -694,11 +801,51 @@ const AdminDashboard: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              
+              {/* Pagination */}
+              {filteredLeaders.length > 0 && (
+                <div className="bg-white px-6 py-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      {currentContent.showing} {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredLeaders.length)} {currentContent.of} {filteredLeaders.length} {currentContent.entries}
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      {Array.from({ length: getTotalPages(filteredLeaders) }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-1 text-sm border rounded-md ${
+                            currentPage === page
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === getTotalPages(filteredLeaders)}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Mobile Cards */}
             <div className="sm:hidden space-y-4">
-              {leaders.map((leader) => (
+              {paginatedLeaders.map((leader) => (
                 <div key={leader.id} className="bg-white shadow-lg rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -722,6 +869,40 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
+              
+              {/* Mobile Pagination */}
+              {filteredLeaders.length > 0 && (
+                <div className="bg-white shadow-lg rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm text-gray-700">
+                      {currentContent.showing} {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredLeaders.length)} {currentContent.of} {filteredLeaders.length} {currentContent.entries}
+                    </div>
+                  </div>
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      {currentContent.previous}
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === getTotalPages(filteredLeaders)}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      {currentContent.next}
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* No data message */}
+              {filteredLeaders.length === 0 && (
+                <div className="bg-white shadow-lg rounded-lg p-8 text-center">
+                  <p className="text-gray-500 text-lg">{currentContent.noDataFound}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -740,6 +921,33 @@ const AdminDashboard: React.FC = () => {
                 <Plus className="h-4 w-4" />
                 <span>{currentContent.addNew}</span>
               </button>
+            </div>
+
+            {/* Filters */}
+            <div className="mb-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder={language === 'id' ? 'Cari deskripsi...' : 'Search description...'}
+                    value={financialFilter}
+                    onChange={(e) => setFinancialFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <select
+                    value={financialTypeFilter}
+                    onChange={(e) => setFinancialTypeFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">{currentContent.allTypes}</option>
+                    <option value="income">{currentContent.income}</option>
+                    <option value="expenditure">{currentContent.expenditure}</option>
+                  </select>
+                </div>
+              </div>
             </div>
             
             {/* Desktop Table */}
@@ -765,7 +973,7 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {records.map((record) => (
+                  {paginatedRecords.map((record) => (
                     <tr key={record.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(record.date).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US')}
@@ -805,11 +1013,51 @@ const AdminDashboard: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              
+              {/* Pagination */}
+              {filteredRecords.length > 0 && (
+                <div className="bg-white px-6 py-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      {currentContent.showing} {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredRecords.length)} {currentContent.of} {filteredRecords.length} {currentContent.entries}
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      {Array.from({ length: getTotalPages(filteredRecords) }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-1 text-sm border rounded-md ${
+                            currentPage === page
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === getTotalPages(filteredRecords)}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Mobile Cards */}
             <div className="sm:hidden space-y-4">
-              {records.map((record) => (
+              {paginatedRecords.map((record) => (
                 <div key={record.id} className="bg-white shadow-lg rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
@@ -847,6 +1095,40 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
+              
+              {/* Mobile Pagination */}
+              {filteredRecords.length > 0 && (
+                <div className="bg-white shadow-lg rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm text-gray-700">
+                      {currentContent.showing} {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredRecords.length)} {currentContent.of} {filteredRecords.length} {currentContent.entries}
+                    </div>
+                  </div>
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      {currentContent.previous}
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === getTotalPages(filteredRecords)}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      {currentContent.next}
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* No data message */}
+              {filteredRecords.length === 0 && (
+                <div className="bg-white shadow-lg rounded-lg p-8 text-center">
+                  <p className="text-gray-500 text-lg">{currentContent.noDataFound}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -863,6 +1145,20 @@ const AdminDashboard: React.FC = () => {
                 <Plus className="h-4 w-4" />
                 <span>{currentContent.addNew}</span>
               </button>
+            </div>
+
+            {/* Filter */}
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder={language === 'id' ? 'Cari judul atau konten...' : 'Search title or content...'}
+                  value={announcementsFilter}
+                  onChange={(e) => setAnnouncementsFilter(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
             </div>
             
             {/* Desktop Table */}
@@ -885,7 +1181,7 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {announcements.map((announcement) => (
+                  {paginatedAnnouncements.map((announcement) => (
                     <tr key={announcement.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {announcement.title}
@@ -916,11 +1212,51 @@ const AdminDashboard: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              
+              {/* Pagination */}
+              {filteredAnnouncements.length > 0 && (
+                <div className="bg-white px-6 py-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                      {currentContent.showing} {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredAnnouncements.length)} {currentContent.of} {filteredAnnouncements.length} {currentContent.entries}
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      {Array.from({ length: getTotalPages(filteredAnnouncements) }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-1 text-sm border rounded-md ${
+                            currentPage === page
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === getTotalPages(filteredAnnouncements)}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Mobile Cards */}
             <div className="sm:hidden space-y-4">
-              {announcements.map((announcement) => (
+              {paginatedAnnouncements.map((announcement) => (
                 <div key={announcement.id} className="bg-white shadow-lg rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
@@ -949,6 +1285,40 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
+              
+              {/* Mobile Pagination */}
+              {filteredAnnouncements.length > 0 && (
+                <div className="bg-white shadow-lg rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm text-gray-700">
+                      {currentContent.showing} {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredAnnouncements.length)} {currentContent.of} {filteredAnnouncements.length} {currentContent.entries}
+                    </div>
+                  </div>
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      {currentContent.previous}
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === getTotalPages(filteredAnnouncements)}
+                      className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      {currentContent.next}
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* No data message */}
+              {filteredAnnouncements.length === 0 && (
+                <div className="bg-white shadow-lg rounded-lg p-8 text-center">
+                  <p className="text-gray-500 text-lg">{currentContent.noDataFound}</p>
+                </div>
+              )}
             </div>
           </div>
         )}

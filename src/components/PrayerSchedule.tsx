@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Sun, Sunrise, Sunset, Moon, MapPin, ChevronDown, Search, X } from 'lucide-react';
+import { Clock, Sun, Sunrise, Sunset, Moon, MapPin, ChevronDown, Search, X, Play, Pause } from 'lucide-react';
 import { prayerService, type PrayerTime, type City } from '../lib/prayerService';
 
 const PrayerSchedule: React.FC = () => {
@@ -11,10 +11,26 @@ const PrayerSchedule: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [language, setLanguage] = useState<'id' | 'en'>('id');
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [nextPrayer, setNextPrayer] = useState<PrayerTime | null>(null);
+  const [timeUntilNext, setTimeUntilNext] = useState<string>('');
 
   useEffect(() => {
     fetchPrayerSchedule();
+    
+    // Update current time every second
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, [selectedCity]);
+
+  useEffect(() => {
+    if (prayers.length > 0) {
+      calculateNextPrayer();
+    }
+  }, [prayers, currentTime]);
 
   const content = {
     id: {
@@ -23,6 +39,8 @@ const PrayerSchedule: React.FC = () => {
       currentTime: 'Waktu sekarang',
       todaySchedule: 'Jadwal Sholat Hari Ini',
       currentPrayer: 'SAAT INI',
+      nextPrayer: 'SHALAT BERIKUTNYA',
+      timeUntilNext: 'dalam',
       noScheduleFound: 'Jadwal sholat tidak ditemukan',
       noScheduleDesc: 'Jadwal sholat akan ditampilkan di sini setelah tersedia.',
       importantNotes: 'Catatan Penting',
@@ -42,6 +60,8 @@ const PrayerSchedule: React.FC = () => {
       currentTime: 'Current time',
       todaySchedule: 'Today\'s Prayer Schedule',
       currentPrayer: 'CURRENT',
+      nextPrayer: 'NEXT PRAYER',
+      timeUntilNext: 'in',
       noScheduleFound: 'Prayer schedule not found',
       noScheduleDesc: 'Prayer schedule will be displayed here once available.',
       importantNotes: 'Important Notes',
@@ -67,6 +87,59 @@ const PrayerSchedule: React.FC = () => {
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
+
+  const calculateNextPrayer = () => {
+    const now = new Date();
+    const currentTimeStr = now.toLocaleTimeString('en-US', { 
+      hour12: false, 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+
+    let next = null;
+    for (const prayer of prayers) {
+      const prayerTime = new Date(`2000-01-01 ${prayer.time}`);
+      const current = new Date(`2000-01-01 ${currentTimeStr}`);
+      
+      if (prayerTime > current) {
+        next = prayer;
+        break;
+      }
+    }
+
+    // If no next prayer today, get first prayer of tomorrow
+    if (!next && prayers.length > 0) {
+      next = prayers[0];
+    }
+
+    setNextPrayer(next);
+  };
+
+  const calculateTimeUntil = (prayerTime: string) => {
+    const now = new Date();
+    const prayer = new Date(`2000-01-01 ${prayerTime}`);
+    const current = new Date(`2000-01-01 ${now.toLocaleTimeString('en-US', { 
+      hour12: false, 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })}`);
+
+    let diff = prayer.getTime() - current.getTime();
+    
+    // If prayer time has passed today, calculate for tomorrow
+    if (diff < 0) {
+      diff += 24 * 60 * 60 * 1000;
+    }
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}j ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  };
 
   const fetchPrayerSchedule = async () => {
     try {
@@ -148,16 +221,16 @@ const PrayerSchedule: React.FC = () => {
   };
 
   const getCurrentTime = () => {
-    return new Date().toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { 
+    return currentTime.toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { 
       hour12: false, 
       hour: '2-digit', 
-      minute: '2-digit' 
+      minute: '2-digit',
+      second: '2-digit'
     });
   };
 
   const isCurrentPrayer = (prayerTime: string) => {
-    const currentTime = getCurrentTime();
-    const current = new Date(`2000-01-01 ${currentTime}`);
+    const current = new Date(`2000-01-01 ${getCurrentTime()}`);
     const prayer = new Date(`2000-01-01 ${prayerTime}`);
     
     return Math.abs(current.getTime() - prayer.getTime()) < 30 * 60 * 1000; // Within 30 minutes
@@ -178,9 +251,10 @@ const PrayerSchedule: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-300 rounded w-1/2 mx-auto mb-4"></div>
-              <div className="h-4 bg-gray-300 rounded w-1/3 mx-auto"></div>
+            <div className="animate-pulse space-y-4">
+              <div className="h-12 bg-gray-300 rounded-lg w-1/2 mx-auto"></div>
+              <div className="h-6 bg-gray-300 rounded w-1/3 mx-auto"></div>
+              <div className="h-8 bg-gray-300 rounded w-1/4 mx-auto"></div>
             </div>
           </div>
         </div>
@@ -212,6 +286,7 @@ const PrayerSchedule: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">{currentContent.title}</h1>
           <p className="text-lg text-gray-600">
@@ -313,6 +388,7 @@ const PrayerSchedule: React.FC = () => {
             </div>
           </div>
           
+          {/* Current Time & Date */}
           <div className="mt-4 text-sm text-gray-500">
             {currentContent.currentTime}: {getCurrentTime()}
           </div>
@@ -323,39 +399,78 @@ const PrayerSchedule: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="px-6 py-4 bg-emerald-900 text-white">
+        {/* Next Prayer Countdown */}
+        {nextPrayer && (
+          <div className="mb-8 bg-gradient-to-r from-emerald-600 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
+            <div className="text-center">
+              <h3 className="text-lg font-medium mb-2">{currentContent.nextPrayer}</h3>
+              <div className="flex items-center justify-center space-x-4 mb-3">
+                {getPrayerIcon(nextPrayer.prayer_name)}
+                <span className="text-2xl font-bold">{nextPrayer.prayer_name}</span>
+              </div>
+              <div className="text-sm opacity-90">
+                {currentContent.timeUntilNext} <span className="font-bold text-xl">{calculateTimeUntil(nextPrayer.time)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Prayer Schedule Timeline */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+          <div className="px-6 py-4 bg-gradient-to-r from-emerald-900 to-emerald-800 text-white">
             <h2 className="text-xl font-semibold flex items-center">
               <Clock className="h-6 w-6 mr-2" />
               {currentContent.todaySchedule}
             </h2>
           </div>
           
-          <div className="divide-y divide-gray-200">
-            {prayers.map((prayer) => (
-              <div
-                key={prayer.id}
-                className={`flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ${
-                  isCurrentPrayer(prayer.time) ? 'bg-amber-50 border-l-4 border-l-amber-500' : ''
-                }`}
-              >
-                <div className="flex items-center space-x-4">
-                  {getPrayerIcon(prayer.prayer_name)}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{prayer.prayer_name}</h3>
-                    {isCurrentPrayer(prayer.time) && (
-                      <span className="text-xs text-amber-600 font-medium">{currentContent.currentPrayer}</span>
-                    )}
+          <div className="relative">
+            {/* Timeline Line */}
+            <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-emerald-200 via-emerald-400 to-emerald-200"></div>
+            
+            <div className="divide-y divide-gray-100">
+              {prayers.map((prayer, index) => (
+                <div
+                  key={prayer.id}
+                  className={`relative px-6 py-6 hover:bg-gray-50 transition-all duration-300 ${
+                    isCurrentPrayer(prayer.time) ? 'bg-amber-50 border-l-4 border-l-amber-500' : ''
+                  }`}
+                >
+                  {/* Timeline Dot */}
+                  <div className={`absolute left-6 w-4 h-4 rounded-full border-4 border-white shadow-lg transform -translate-x-2 ${
+                    isCurrentPrayer(prayer.time) 
+                      ? 'bg-amber-500 border-amber-500' 
+                      : 'bg-emerald-500 border-emerald-500'
+                  }`}></div>
+                  
+                  <div className="ml-8 flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className={`p-3 rounded-xl ${
+                        isCurrentPrayer(prayer.time) 
+                          ? 'bg-amber-100 text-amber-600' 
+                          : 'bg-emerald-100 text-emerald-600'
+                      }`}>
+                        {getPrayerIcon(prayer.prayer_name)}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{prayer.prayer_name}</h3>
+                        {isCurrentPrayer(prayer.time) && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            {currentContent.currentPrayer}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-emerald-700">{prayer.time}</div>
+                      <div className="text-sm text-gray-500">
+                        {new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { weekday: 'long' })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-emerald-700">{prayer.time}</div>
-                  <div className="text-sm text-gray-500">
-                    {new Date().toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { weekday: 'long' })}
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -367,14 +482,33 @@ const PrayerSchedule: React.FC = () => {
           </div>
         )}
 
-        <div className="mt-8 bg-blue-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">{currentContent.importantNotes}</h3>
-          <ul className="text-gray-700 space-y-2">
-            <li>• {currentContent.note1}</li>
-            <li>• {currentContent.note2}</li>
-            <li>• {currentContent.note3}</li>
-            <li>• {currentContent.note4}</li>
-            <li>• {currentContent.note5}</li>
+        {/* Important Notes */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+            {currentContent.importantNotes}
+          </h3>
+          <ul className="text-gray-700 space-y-3">
+            <li className="flex items-start">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+              <span>{currentContent.note1}</span>
+            </li>
+            <li className="flex items-start">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+              <span>{currentContent.note2}</span>
+            </li>
+            <li className="flex items-start">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+              <span>{currentContent.note3}</span>
+            </li>
+            <li className="flex items-start">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+              <span>{currentContent.note4}</span>
+            </li>
+            <li className="flex items-start">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+              <span>{currentContent.note5}</span>
+            </li>
           </ul>
         </div>
       </div>
